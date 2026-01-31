@@ -9,8 +9,7 @@ import { usePixabay } from "./hooks/usePixabay";
 
 import "./index.css";
 
-const API_KEY = "50870549-e725e8370144de5641f01ffe4"; // твій ключ Pixabay
-
+const API_KEY = "50870549-e725e8370144de5641f01ffe4"; 
 export default function App() {
   const [modalImage, setModalImage] = useState(null);
   const { images, loading, totalHits, searchImages, loadMore, error } =
