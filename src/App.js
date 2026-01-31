@@ -4,36 +4,36 @@ import ImageGallery from "./components/ImageGallery/ImageGallery";
 import Button from "./components/Button/Button";
 import Loader from "./components/Loader/Loader";
 import Modal from "./components/Modal/Modal";
+
 import { usePixabay } from "./hooks/usePixabay";
 
-const API_KEY = "50870549-e725e8370144de5641f01ffe4";
+import "./index.css";
 
-const App = () => {
-  const { images, loading, page, query, setQuery, nextPage } =
+const API_KEY = "50870549-e725e8370144de5641f01ffe4"; // твій ключ Pixabay
+
+export default function App() {
+  const [modalImage, setModalImage] = useState(null);
+  const { images, loading, totalHits, searchImages, loadMore, error } =
     usePixabay(API_KEY);
-  const [showModal, setShowModal] = useState(false);
-  const [modalImage, setModalImage] = useState("");
 
-  const handleSearchSubmit = (newQuery) => setQuery(newQuery);
-  const handleLoadMore = () => nextPage();
-  const openModal = (largeImageURL) => {
-    setModalImage(largeImageURL);
-    setShowModal(true);
-  };
-  const closeModal = () => {
-    setShowModal(false);
-    setModalImage("");
-  };
+  const openModal = (url) => setModalImage(url);
+  const closeModal = () => setModalImage(null);
+
+  const showLoadMore = images.length > 0 && images.length < totalHits;
 
   return (
-    <div>
-      <Searchbar onSubmit={handleSearchSubmit} />
-      <ImageGallery images={images} onImageClick={openModal} />
-      {loading && <Loader />}
-      {!loading && images.length > 0 && <Button onClick={handleLoadMore} />}
-      {showModal && <Modal image={modalImage} onClose={closeModal} />}
-    </div>
-  );
-};
+    <>
+      <Searchbar onSubmit={searchImages} />
 
-export default App;
+      <ImageGallery images={images} onImageClick={openModal} />
+
+      {loading && <Loader />}
+
+      {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+
+      {showLoadMore && !loading && <Button onClick={loadMore} />}
+
+      {modalImage && <Modal image={modalImage} onClose={closeModal} />}
+    </>
+  );
+}

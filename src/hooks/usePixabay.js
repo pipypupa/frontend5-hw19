@@ -1,63 +1,61 @@
-import { useEffect, useReducer, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const PER_PAGE = 12;
 
-const initialState = {
-  query: "",
-  images: [],
-  page: 1,
-  loading: false,
-  error: null,
-};
-
-function reducer(state, action) {
-  switch (action.type) {
-    case "SET_QUERY":
-      return { ...state, query: action.payload, page: 1, images: [] };
-    case "FETCH_START":
-      return { ...state, loading: true, error: null };
-    case "FETCH_SUCCESS":
-      return {
-        ...state,
-        images: state.page === 1 ? action.payload : [...state.images, ...action.payload],
-        loading: false,
-      };
-    case "FETCH_ERROR":
-      return { ...state, loading: false, error: action.payload };
-    case "NEXT_PAGE":
-      return { ...state, page: state.page + 1 };
-    default:
-      return state;
-  }
-}
-
 export const usePixabay = (apiKey) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [query, setQuery] = useState("");
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalHits, setTotalHits] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchImages = useCallback(async () => {
-    if (!state.query) return;
+    if (!query) return;
 
-    dispatch({ type: "FETCH_START" });
+    setLoading(true);
+    setError(null);
 
     try {
       const response = await fetch(
         `https://pixabay.com/api/?q=${encodeURIComponent(
-          state.query
-        )}&page=${state.page}&key=${apiKey}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
+          query
+        )}&page=${page}&key=${apiKey}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
       );
+
+      if (!response.ok) throw new Error(`Pixabay API error: ${response.status}`);
+
       const data = await response.json();
-      dispatch({ type: "FETCH_SUCCESS", payload: data.hits });
-    } catch (error) {
-      dispatch({ type: "FETCH_ERROR", payload: error.message });
+
+      setImages((prev) => (page === 1 ? data.hits : [...prev, ...data.hits]));
+      setTotalHits(data.totalHits);
+    } catch (err) {
+      setError("Помилка завантаження зображень");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  }, [state.query, state.page, apiKey]);
+  }, [query, page, apiKey]);
 
   useEffect(() => {
     fetchImages();
   }, [fetchImages]);
 
-  const setQuery = (query) => dispatch({ type: "SET_QUERY", payload: query });
-  const nextPage = () => dispatch({ type: "NEXT_PAGE" });
+  const searchImages = (newQuery) => {
+    setQuery(newQuery);
+    setPage(1);
+    setImages([]);
+    setTotalHits(0);
+  };
 
-  return { ...state, setQuery, nextPage };
+  const loadMore = () => setPage((prev) => prev + 1);
+
+  return {
+    images,
+    loading,
+    error,
+    totalHits,
+    searchImages,
+    loadMore,
+  };
 };
